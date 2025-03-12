@@ -1,0 +1,95 @@
+-- Variáveis
+local player = game.Players.LocalPlayer
+local mouse = player:GetMouse()
+local camera = workspace.CurrentCamera
+local aimTarget = nil
+local runService = game:GetService("RunService")
+
+-- Criar GUI Móvel
+local gui = Instance.new("ScreenGui")
+gui.Parent = player:FindFirstChild("PlayerGui") or player:WaitForChild("PlayerGui")
+
+-- Criar Frame
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 220, 0, 100)
+frame.Position = UDim2.new(0.5, -110, 0.2, 0)
+frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+frame.BackgroundTransparency = 0.4
+frame.Active = true
+frame.Draggable = true
+frame.Parent = gui
+
+-- Criar Título
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 30)
+title.BackgroundTransparency = 1
+title.Text = "🎯 Aimbot Alvo 🎯"
+title.TextScaled = true
+title.TextColor3 = Color3.fromRGB(255, 255, 0)
+title.Parent = frame
+
+-- Criar Caixa de Texto
+local textBox = Instance.new("TextBox")
+textBox.Size = UDim2.new(1, -20, 0, 30)
+textBox.Position = UDim2.new(0, 10, 0, 35)
+textBox.PlaceholderText = "Digite o nome do player"
+textBox.Text = ""
+textBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+textBox.Parent = frame
+
+-- Criar Botão para Ativar Aimbot
+local lockButton = Instance.new("TextButton")
+lockButton.Size = UDim2.new(0.5, -5, 0, 30)
+lockButton.Position = UDim2.new(0, 10, 0, 70)
+lockButton.Text = "Fixar"
+lockButton.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+lockButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+lockButton.Parent = frame
+
+-- Criar Botão "X" para Desativar
+local closeButton = Instance.new("TextButton")
+closeButton.Size = UDim2.new(0.5, -5, 0, 30)
+closeButton.Position = UDim2.new(0.5, 5, 0, 70)
+closeButton.Text = "❌"
+closeButton.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeButton.Parent = frame
+
+-- Função para encontrar um player pelo nome parcial
+local function findPlayerByName(namePart)
+    namePart = namePart:lower()
+    for _, p in pairs(game.Players:GetPlayers()) do
+        if p.Name:lower():sub(1, #namePart) == namePart then
+            return p
+        end
+    end
+    return nil
+end
+
+-- Função para fixar a câmera na direção do player
+local function lockAimbot()
+    local targetName = textBox.Text
+    local targetPlayer = findPlayerByName(targetName)
+    
+    if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        aimTarget = targetPlayer.Character.HumanoidRootPart
+    end
+end
+
+-- Atualizar a câmera para seguir o alvo
+local function updateAimbot()
+    if aimTarget then
+        camera.CFrame = CFrame.new(camera.CFrame.Position, aimTarget.Position)
+    end
+end
+
+-- Desativar o aimbot
+local function unlockAimbot()
+    aimTarget = nil
+end
+
+-- Conectar botões às funções
+lockButton.MouseButton1Click:Connect(lockAimbot)
+closeButton.MouseButton1Click:Connect(unlockAimbot)
+runService.RenderStepped:Connect(updateAimbot)
