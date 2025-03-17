@@ -4,6 +4,7 @@ local mouse = player:GetMouse()
 local camera = workspace.CurrentCamera
 local aimTarget = nil
 local runService = game:GetService("RunService")
+local originalCameraType = camera.CameraType  -- Salvar o tipo original da câmera
 
 -- Criar GUI Móvel
 local gui = Instance.new("ScreenGui")
@@ -56,6 +57,22 @@ closeButton.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
 closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 closeButton.Parent = frame
 
+-- Criar linha até o alvo
+local function createBeam(startPos, endPos)
+    local beamPart = Instance.new("Part")
+    beamPart.Size = Vector3.new(0.2, 0.2, (startPos - endPos).Magnitude)
+    beamPart.CFrame = CFrame.new(startPos, endPos) * CFrame.new(0, 0, -beamPart.Size.Z / 2)
+    beamPart.Color = Color3.fromRGB(255, 0, 0)
+    beamPart.Material = Enum.Material.Neon
+    beamPart.Anchored = true
+    beamPart.CanCollide = false
+    beamPart.Parent = workspace
+    return beamPart
+end
+
+local aimBeam = nil  -- Armazena a linha
+local aura = nil  -- Armazena a aura do alvo
+
 -- Função para encontrar um player pelo nome parcial
 local function findPlayerByName(namePart)
     namePart = namePart:lower()
@@ -67,26 +84,54 @@ local function findPlayerByName(namePart)
     return nil
 end
 
--- Função para fixar a câmera na direção do player
+-- Função para ativar o Aimbot
 local function lockAimbot()
     local targetName = textBox.Text
     local targetPlayer = findPlayerByName(targetName)
     
-    if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        aimTarget = targetPlayer.Character.HumanoidRootPart
+    if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("Head") then
+        aimTarget = targetPlayer.Character.Head  -- Focar na cabeça
+
+        -- Criar Aura Vermelha
+        if not aura then
+            aura = Instance.new("SelectionBox")
+            aura.Adornee = targetPlayer.Character
+            aura.LineThickness = 0.05
+            aura.Color3 = Color3.fromRGB(255, 0, 0)
+            aura.Parent = targetPlayer.Character
+        end
+
+        -- Mudar câmera para seguir o alvo
+        camera.CameraType = Enum.CameraType.Scriptable
     end
 end
 
--- Atualizar a câmera para seguir o alvo
+-- Atualizar a câmera e linha até o alvo
 local function updateAimbot()
     if aimTarget then
+        -- Grudar câmera na cabeça do alvo
         camera.CFrame = CFrame.new(camera.CFrame.Position, aimTarget.Position)
+
+        -- Atualizar ou criar linha de ligação
+        if aimBeam then
+            aimBeam:Destroy()
+        end
+        aimBeam = createBeam(camera.CFrame.Position, aimTarget.Position)
     end
 end
 
--- Desativar o aimbot
+-- Desativar o Aimbot e restaurar câmera
 local function unlockAimbot()
+    if aura then
+        aura:Destroy()  -- Remover a aura
+        aura = nil
+    end
+    if aimBeam then
+        aimBeam:Destroy()  -- Remover a linha
+        aimBeam = nil
+    end
     aimTarget = nil
+    camera.CameraType = originalCameraType  -- Restaurar câmera
 end
 
 -- Conectar botões às funções
