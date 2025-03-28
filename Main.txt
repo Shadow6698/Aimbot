@@ -1,140 +1,91 @@
--- Variáveis
-local player = game.Players.LocalPlayer
-local mouse = player:GetMouse()
-local camera = workspace.CurrentCamera
-local aimTarget = nil
-local runService = game:GetService("RunService")
-local originalCameraType = camera.CameraType  -- Salvar o tipo original da câmera
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
--- Criar GUI Móvel
-local gui = Instance.new("ScreenGui")
-gui.Parent = player:FindFirstChild("PlayerGui") or player:WaitForChild("PlayerGui")
+-- Criando a UI Library
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+local MainFrame = Instance.new("Frame", ScreenGui)
+local TextBox = Instance.new("TextBox", MainFrame)
+local ESPButton = Instance.new("TextButton", MainFrame)
+local RemoveESPButton = Instance.new("TextButton", MainFrame)
 
--- Criar Frame
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 220, 0, 100)
-frame.Position = UDim2.new(0.5, -110, 0.2, 0)
-frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-frame.BackgroundTransparency = 0.4
-frame.Active = true
-frame.Draggable = true
-frame.Parent = gui
+-- Estilizando a UI
+ScreenGui.ResetOnSpawn = false
+MainFrame.Size = UDim2.new(0, 200, 0, 150)
+MainFrame.Position = UDim2.new(0.1, 0, 0.1, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(128, 0, 128) -- Roxo
+MainFrame.Active = true
+MainFrame.Draggable = true
 
--- Criar Título
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 30)
-title.BackgroundTransparency = 1
-title.Text = "🎯 Aimbot Alvo 🎯"
-title.TextScaled = true
-title.TextColor3 = Color3.fromRGB(255, 255, 0)
-title.Parent = frame
+TextBox.Size = UDim2.new(1, -10, 0, 30)
+TextBox.Position = UDim2.new(0, 5, 0, 5)
+TextBox.PlaceholderText = "Digite o nick..."
+TextBox.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Vermelho
+TextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 
--- Criar Caixa de Texto
-local textBox = Instance.new("TextBox")
-textBox.Size = UDim2.new(1, -20, 0, 30)
-textBox.Position = UDim2.new(0, 10, 0, 35)
-textBox.PlaceholderText = "Digite o nome do player"
-textBox.Text = ""
-textBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-textBox.Parent = frame
+ESPButton.Size = UDim2.new(1, -10, 0, 30)
+ESPButton.Position = UDim2.new(0, 5, 0, 40)
+ESPButton.Text = "Grudar + ESP"
+ESPButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+ESPButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 
--- Criar Botão para Ativar Aimbot
-local lockButton = Instance.new("TextButton")
-lockButton.Size = UDim2.new(0.5, -5, 0, 30)
-lockButton.Position = UDim2.new(0, 10, 0, 70)
-lockButton.Text = "Fixar"
-lockButton.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-lockButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-lockButton.Parent = frame
+RemoveESPButton.Size = UDim2.new(1, -10, 0, 30)
+RemoveESPButton.Position = UDim2.new(0, 5, 0, 75)
+RemoveESPButton.Text = "Desgrudar + ESPOFF"
+RemoveESPButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+RemoveESPButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 
--- Criar Botão "X" para Desativar
-local closeButton = Instance.new("TextButton")
-closeButton.Size = UDim2.new(0.5, -5, 0, 30)
-closeButton.Position = UDim2.new(0.5, 5, 0, 70)
-closeButton.Text = "❌"
-closeButton.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
-closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-closeButton.Parent = frame
+local function CreateESP(target)
+    local line = Drawing.new("Line")
+    line.Color = Color3.fromRGB(255, 0, 0)
+    line.Thickness = 2
+    line.Transparency = 1
 
--- Criar linha até o alvo
-local function createBeam(startPos, endPos)
-    local beamPart = Instance.new("Part")
-    beamPart.Size = Vector3.new(0.2, 0.2, (startPos - endPos).Magnitude)
-    beamPart.CFrame = CFrame.new(startPos, endPos) * CFrame.new(0, 0, -beamPart.Size.Z / 2)
-    beamPart.Color = Color3.fromRGB(255, 0, 0)
-    beamPart.Material = Enum.Material.Neon
-    beamPart.Anchored = true
-    beamPart.CanCollide = false
-    beamPart.Parent = workspace
-    return beamPart
-end
-
-local aimBeam = nil  -- Armazena a linha
-local aura = nil  -- Armazena a aura do alvo
-
--- Função para encontrar um player pelo nome parcial
-local function findPlayerByName(namePart)
-    namePart = namePart:lower()
-    for _, p in pairs(game.Players:GetPlayers()) do
-        if p.Name:lower():sub(1, #namePart) == namePart then
-            return p
+    local function update()
+        if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+            local targetPos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(target.Character.HumanoidRootPart.Position)
+            local playerPos, _ = workspace.CurrentCamera:WorldToViewportPoint(LocalPlayer.Character.HumanoidRootPart.Position)
+            
+            if onScreen then
+                line.Visible = true
+                line.From = Vector2.new(playerPos.X, playerPos.Y)
+                line.To = Vector2.new(targetPos.X, targetPos.Y)
+            else
+                line.Visible = false
+            end
+        else
+            line.Visible = false
         end
     end
-    return nil
-end
-
--- Função para ativar o Aimbot
-local function lockAimbot()
-    local targetName = textBox.Text
-    local targetPlayer = findPlayerByName(targetName)
     
-    if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("Head") then
-        aimTarget = targetPlayer.Character.Head  -- Focar na cabeça
+    local connection = RunService.RenderStepped:Connect(update)
+    return line, connection
+end
 
-        -- Criar Aura Vermelha
-        if not aura then
-            aura = Instance.new("SelectionBox")
-            aura.Adornee = targetPlayer.Character
-            aura.LineThickness = 0.05
-            aura.Color3 = Color3.fromRGB(255, 0, 0)
-            aura.Parent = targetPlayer.Character
-        end
-
-        -- Mudar câmera para seguir o alvo
-        camera.CameraType = Enum.CameraType.Scriptable
+local espLine, lockConnection
+local function LockOn(target)
+    if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+        espLine, lockConnection = CreateESP(target)
+        lockConnection = RunService.RenderStepped:Connect(function()
+            workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, target.Character.HumanoidRootPart.Position)
+        end)
     end
 end
 
--- Atualizar a câmera e linha até o alvo
-local function updateAimbot()
-    if aimTarget then
-        -- Grudar câmera na cabeça do alvo
-        camera.CFrame = CFrame.new(camera.CFrame.Position, aimTarget.Position)
-
-        -- Atualizar ou criar linha de ligação
-        if aimBeam then
-            aimBeam:Destroy()
-        end
-        aimBeam = createBeam(camera.CFrame.Position, aimTarget.Position)
+ESPButton.MouseButton1Click:Connect(function()
+    local targetName = TextBox.Text
+    local targetPlayer = Players:FindFirstChild(targetName)
+    if targetPlayer then
+        LockOn(targetPlayer)
     end
-end
+end)
 
--- Desativar o Aimbot e restaurar câmera
-local function unlockAimbot()
-    if aura then
-        aura:Destroy()  -- Remover a aura
-        aura = nil
+RemoveESPButton.MouseButton1Click:Connect(function()
+    if espLine then
+        espLine:Remove()
     end
-    if aimBeam then
-        aimBeam:Destroy()  -- Remover a linha
-        aimBeam = nil
+    if lockConnection then
+        lockConnection:Disconnect()
     end
-    aimTarget = nil
-    camera.CameraType = originalCameraType  -- Restaurar câmera
-end
-
--- Conectar botões às funções
-lockButton.MouseButton1Click:Connect(lockAimbot)
-closeButton.MouseButton1Click:Connect(unlockAimbot)
-runService.RenderStepped:Connect(updateAimbot)
+end)
